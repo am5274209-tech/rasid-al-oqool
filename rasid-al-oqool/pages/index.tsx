@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable */
+import { useState, useEffect, useCallback } from 'react';
 
-// مصفوفة الـ 50 سؤالاً التراكمية
 const questionsBank = [
   { question: "عاصمة مصر؟", answer: "القاهرة", options: ["القاهرة", "الإسكندرية", "الجيزة"] },
   { question: "عاصمة السعودية؟", answer: "الرياض", options: ["جدة", "الرياض", "الدمام"] },
@@ -58,6 +58,7 @@ const messages = ["عاش يا بطل، حاول تاني!", "اهبد مرة ت
 const shuffleArray = (array: any[]) => [...array].sort(() => Math.random() - 0.5);
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false);
   const [gameState, setGameState] = useState('start');
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -67,27 +68,19 @@ export default function Home() {
   const [funnyMsg, setFunnyMsg] = useState("");
 
   useEffect(() => {
+    setIsMounted(true);
     const s = localStorage.getItem('highScore');
     if (s) setHighScore(parseInt(s));
   }, []);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(t);
-    } else if (timeLeft === 0 && gameState === 'playing') {
-      finishGame(score);
-    }
-  }, [timeLeft, gameState]);
-
-  const finishGame = (fs: number) => {
+  const finishGame = useCallback((fs: number) => {
     if (fs > highScore) {
       setHighScore(fs);
       localStorage.setItem('highScore', fs.toString());
     }
     setFunnyMsg(messages[Math.floor(Math.random() * messages.length)]);
     setGameState('gameover');
-  };
+  }, [highScore]);
 
   const startGame = () => {
     setQuestions(shuffleArray(questionsBank).slice(0, 15));
@@ -111,6 +104,17 @@ export default function Home() {
       finishGame(score);
     }
   };
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(t);
+    } else if (timeLeft === 0 && gameState === 'playing') {
+      finishGame(score);
+    }
+  }, [timeLeft, gameState, score, finishGame]);
+
+  if (!isMounted) return null;
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #0f2027, #203a43, #2c5364)', color: 'white', flexDirection: 'column', textAlign: 'center', padding: '20px' }}>
